@@ -1,0 +1,65 @@
+name: Automate Data Preprocessing
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  preprocess:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas scikit-learn pytest
+
+    - name: Download Telco dataset
+      run: |
+        mkdir -p telco_raw
+        python -c "
+import urllib.request
+url = 'https://raw.githubusercontent.com/IBM/telco-customer-churn-on-icp4d/master/data/Telco-Customer-Churn.csv'
+urllib.request.urlretrieve(url, 'telco_raw/WA_Fn-UseC_-Telco-Customer-Churn.csv')
+print('Dataset downloaded successfully')
+"
+
+    - name: Run preprocessing script
+      run: |
+        cd preprocessing
+        python automate_Alfin.py
+
+    - name: Run tests
+      run: |
+        pytest preprocessing/test_automate_Alfin.py -v
+
+    - name: Commit and push processed data
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "github-actions[bot]"
+
+        git add preprocessing/churn_preprocessing/dataset_ready.csv
+
+        git diff --cached --quiet && echo "No changes to commit" && exit 0
+
+        git commit -m "[skip ci] Auto-update processed dataset"
+
+        git pull --rebase origin main
+        git push
