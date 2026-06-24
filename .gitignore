@@ -1,2 +1,9 @@
+__pycache__/
+*.pyc
+.env
+.DS_Store
+*.egg-info/
+.ipynb_checkpoints/
 venv/
-venv/
+telco_raw/
+!preprocessing/churn_preprocessing/dataset_ready.csv
